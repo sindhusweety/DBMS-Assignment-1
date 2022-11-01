@@ -71,7 +71,7 @@ public class MenuDrivenAssgmt {
     public void createDB()  {
         try{
 
-        if (Files.exists(STORAGE_DIR) == false){
+        if (!Files.exists(STORAGE_DIR)){
             Files.createDirectory(STORAGE_DIR);
         }
         if (!Files.exists(Path.of(DB_URL))){
@@ -95,27 +95,14 @@ public class MenuDrivenAssgmt {
             this.conn =DriverManager.getConnection(
                     "jdbc:ucanaccess://"+DB_URL);
 
-            //System.out.println("jdbc:ucanaccess://"+DB_URL);
-
-            //System.out.println(this.conn);
-
             this.statement = this.conn.createStatement();
-            //System.out.println(this.statement);
 
-
-
-            //rs = s.executeQuery("SELECT [FirstName] FROM [Test]");
-
-            //System.out.println(rs.getString(1));
-
-            //while (rs.next()) {
-              //  System.out.println(rs.getString(1));
-
-            //}
 
         }
          catch (SQLException | ClassNotFoundException e) {
+             System.out.println("------------------------------------------------------------");
              System.out.println("SQL error occured   : "+ e );
+             System.out.println("------------------------------------------------------------");
              this.exceptionFun();
          }
     }
@@ -148,7 +135,6 @@ public class MenuDrivenAssgmt {
 
         try {
             this.generic_arrlist.clear();
-            //this.tableHistory();
             this.fetchTableNames();
             System.out.println(this.ltables);
             System.out.println("Enter table name: ");
@@ -156,16 +142,20 @@ public class MenuDrivenAssgmt {
             if (!this.input.isBlank()) {
 
                 while (this.ltables.contains(this.input.strip())) {
+                    System.out.println("------------------------------------------------------------");
                     System.out.println("Entered table name already exists in the DB & Please try Again. ");
+                    System.out.println("------------------------------------------------------------");
                     System.out.println("Enter table name: ");
                     this.readerFun();
                 }
                 this.generic_arrlist.add(this.input.strip());
-                while (!this.input.strip().isEmpty()) {
+                while (!this.input.isBlank()) {
                     System.out.println("Enter column name:");
                     this.readerFun();
                     while (this.generic_arrlist.contains(this.input.strip())) {
+                        System.out.println("------------------------------------------------------------");
                         System.out.println("Entered column name already exists in the DB & Please try Again. ");
+                        System.out.println("------------------------------------------------------------");
                         System.out.println("Enter column name:");
                         this.readerFun();
                     }
@@ -182,13 +172,16 @@ public class MenuDrivenAssgmt {
                 System.out.println(sql);
                 this.statement.executeUpdate(sql);
                 this.conn.commit();
+                System.out.println("------------------------------------------------------------");
                 System.out.println("Successfully created table");
+                System.out.println("------------------------------------------------------------");
                 this.generic_arrlist.clear();
+                System.out.println("------------------------------------------------------------");
                 System.out.println("If you would like to create more tables, Type 'Yes' or 'No' (y/n):");
+                System.out.println("------------------------------------------------------------");
                 this.readerFun();
                 if (this.input.toLowerCase().startsWith("y")){
                     System.out.println("------------------------------------------------------------");
-
                     this.createTable();
                 }
                 else{
@@ -196,20 +189,33 @@ public class MenuDrivenAssgmt {
                 }
 
             } else {
-                System.out.println("Entered Empty input & Please try again");
+                this.emptyInputMsg();
                 this.createTable();
             }
         }
         catch (SQLException e) {
-            System.out.println("SQL error occured   : "+ e );
+            this.sqlErrorMsg(e);
             this.exceptionFun();
         }
 
+    }
+    
+    public void emptyInputMsg(){
+        System.out.println("------------------------------------------------------------");
+        System.out.println("Entered Empty input & Please try again");
+        System.out.println("------------------------------------------------------------");
+    }
+    public void sqlErrorMsg(SQLException e){
+        System.out.println("------------------------------------------------------------");
+        System.out.println("SQL error occured   : "+ e );
+        System.out.println("------------------------------------------------------------");
     }
 
     public void insertTable(){
         try{
             this.generic_arrlist.clear();
+            this.fetchTableNames();
+            System.out.println(this.ltables);
             System.out.println("Enter table name: ");
             this.readerFun();
             if (! this.input.isBlank()){
@@ -217,34 +223,215 @@ public class MenuDrivenAssgmt {
                     String sql = "SELECT * FROM "+this.input.strip();
                     this.rs = this.statement.executeQuery(sql);
                     this.rsmd = this.rs.getMetaData();
-                    int count = 1;
-                    while (count < this.rsmd.getColumnCount()){
-                        this.generic_arrlist.add(this.rsmd.getColumnName(count));
+
+                    String table_name = this.input.strip();
+
+
+                    System.out.println("Enter "+table_name+"'s "+this.rsmd.getColumnName(1)+":");
+                    this.readerFun();
+
+                    String insert_sql = "INSERT INTO "+table_name+" VALUES ('"+this.input+"'";
+                    String check_query = "SELECT * FROM "+ table_name+" WHERE "+this.rsmd.getColumnName(1)+" ='"+this.input+"'";
+                    int count = 2;
+                    while (count <= this.rsmd.getColumnCount()){
+                        System.out.println("Enter "+table_name+"'s "+this.rsmd.getColumnName(count)+":");
+                        this.readerFun();
+                        insert_sql+=",'"+this.input.strip()+"'";
+                        check_query+=" AND "+this.rsmd.getColumnName(count)+" = '"+this.input.strip()+"'";
+
                         count += 1;
 
                     }
-                    System.out.println(this.generic_arrlist);
-                    String insert_sql = "INSERT INTO "+this.input.strip();
+                    insert_sql+=")";
+                    //System.out.println(insert_sql);
+                    //System.out.println(check_query);
+                    this.rs = this.statement.executeQuery(check_query);
+
+                    if (rs.next()){
+                        System.out.println("------------------------------------------------------------");
+                        System.out.println("Record already exists in the "+table_name+" table & Please try Again");
+                        System.out.println("------------------------------------------------------------");
+                        this.insertTable();
+                    }
+                    else{
+                        this.statement.executeUpdate(insert_sql);
+                        this.conn.commit();
+                        System.out.println("------------------------------------------------------------");
+                        System.out.println("Successfully inserted");
+                        System.out.println("------------------------------------------------------------");
+                        this.generic_arrlist.clear();
+                        System.out.println("------------------------------------------------------------");
+                        System.out.println(" Type 'Yes' or 'No' (y/n) to insert more:");
+                        this.readerFun();
+                        if (this.input.toLowerCase().startsWith("y")){
+                            System.out.println("------------------------------------------------------------");
+                            this.insertTable();
+                        }
+                        else{
+                            this.redirectToHome();
+                        }
+                    }
 
                 }
                 else{
-                    System.out.println("Table doesn't exist & Please try again");
+                    this.tableDsnotExMsg();
                     this.insertTable();
                 }
 
             }
             else {
-                System.out.println("Entered Empty input & Please try again");
+                this.emptyInputMsg();
                 this.insertTable();
             }
 
         }
         catch (SQLException e){
-            System.out.println("SQL error occured   : "+ e );
+            this.sqlErrorMsg(e);
             this.exceptionFun();
         }
     }
+    
+    public void tableDsnotExMsg(){
+        System.out.println("------------------------------------------------------------");
+        System.out.println("Table doesn't exist & Please try again");
+        System.out.println("------------------------------------------------------------");
+    }
 
+    public void removeRecords(){
+        try{
+
+            this.generic_arrlist.clear();
+            this.fetchTableNames();
+            System.out.println(this.ltables);
+            System.out.println("Enter table name: ");
+            this.readerFun();
+            if (! this.input.isBlank()){
+                if (this.ltables.contains(this.input.strip())){
+                    String sql = "SELECT * FROM "+this.input.strip();
+                    this.rs = this.statement.executeQuery(sql);
+                    this.rsmd = this.rs.getMetaData();
+
+                    String table_name = this.input.strip();
+
+
+                    System.out.println("Enter "+table_name+"'s "+this.rsmd.getColumnName(1)+":");
+                    this.readerFun();
+
+                    String delete_sql = "DELETE FROM "+table_name+" WHERE "+this.rsmd.getColumnName(1)+" ='"+this.input+"'";
+                    String check_query = "SELECT * FROM "+ table_name+" WHERE "+this.rsmd.getColumnName(1)+" ='"+this.input+"'";
+                    int count = 2;
+                    while (count <= this.rsmd.getColumnCount()){
+                        System.out.println("Enter "+table_name+"'s "+this.rsmd.getColumnName(count)+":");
+                        this.readerFun();
+                        delete_sql+=" AND "+this.rsmd.getColumnName(count)+" = '"+this.input.strip()+"'";
+                        check_query+=" AND "+this.rsmd.getColumnName(count)+" = '"+this.input.strip()+"'";
+
+                        count += 1;
+
+                    }
+
+                    //System.out.println(delete_sql);
+                    //System.out.println(check_query);
+
+                    this.rs = this.statement.executeQuery(check_query);
+
+                    if (!rs.next()){
+                        System.out.println("------------------------------------------------------------");
+                        System.out.println("Record doesn't even exist in "+table_name+" table to DELETE & Please try Again");
+                        System.out.println("------------------------------------------------------------");
+                        this.removeRecords();
+                    }
+                    else{
+                        this.statement.executeUpdate(delete_sql);
+                        this.conn.commit();
+                        System.out.println("------------------------------------------------------------");
+                        System.out.println("Successfully deleted");
+                        System.out.println("------------------------------------------------------------");
+
+                        this.generic_arrlist.clear();
+                        System.out.println(" Type 'Yes' or 'No' (y/n) to delete more records:");
+                        this.readerFun();
+                        if (this.input.toLowerCase().startsWith("y")){
+                            System.out.println("------------------------------------------------------------");
+                            this.removeRecords();
+                        }
+                        else{
+                            this.redirectToHome();
+                        }
+
+                    }
+                }
+                else{
+                    this.tableDsnotExMsg();
+                    this.removeRecords();
+                }
+
+            }
+            else {
+                this.emptyInputMsg();
+                this.removeRecords();
+            }
+
+        }
+        catch (SQLException e){
+            this.sqlErrorMsg(e);
+            this.exceptionFun();
+        }
+    }
+    public void printTable(){
+        try{
+            this.generic_arrlist.clear();
+            this.fetchTableNames();
+            System.out.println(this.ltables);
+            System.out.println("Enter table name: ");
+            this.readerFun();
+            if (! this.input.isBlank()){
+                if (this.ltables.contains(this.input.strip())){
+                    String sql = "SELECT * FROM "+this.input.strip();
+                    this.rs = this.statement.executeQuery(sql);
+                    this.rsmd = this.rs.getMetaData();
+
+                    String table_name = this.input.strip();
+
+                    System.out.println("------------------------------------------------------------");
+                    System.out.println(table_name);
+                    DBTablePrinter.printTable(this.conn, table_name);
+                    System.out.println("------------------------------------------------------------");
+
+                    this.generic_arrlist.clear();
+                    System.out.println(" Type 'Yes' or 'No' (y/n) to continue printing:");
+                    this.readerFun();
+                    if (this.input.toLowerCase().startsWith("y")){
+                        System.out.println("------------------------------------------------------------");
+                        this.printTable();
+                    }
+                    else{
+                        this.redirectToHome();
+                    }
+                }
+                else{
+                    this.tableDsnotExMsg();
+                    this.printTable();
+                }
+
+            }
+            else {
+                this.emptyInputMsg();
+                this.printTable();
+            }
+
+        }
+        catch (SQLException e){
+            this.sqlErrorMsg(e);
+            this.exceptionFun();
+        }
+
+
+    }
+    
+    public void generic_insertion(){
+        
+    }
     public void redirectToHome() {
 
         System.out.println("------------------------------------------------------------");
@@ -294,47 +481,44 @@ public class MenuDrivenAssgmt {
         }
         else{
             System.out.println((mapOp.get(op_symbol)) + " operation has been chosen");
-            //System.out.println((Operations.CREATE).getClass().getName());
             if (mapOp.get(op_symbol) == CREATE){
                 this.createTable();
-
             }
             else if (mapOp.get(op_symbol) == INSERT){
                 this.insertTable();
-
-            }
-            else if (mapOp.get(op_symbol) == PRINTTABLE){
-                //this.printFile();
-
             }
             else if (mapOp.get(op_symbol) == REMOVE){
-                //this.removeObject();
-
+                this.removeRecords();
+            }
+            else if (mapOp.get(op_symbol) == PRINTTABLE){
+                this.printTable();
             }
             else if (mapOp.get(op_symbol) == INCLUDE_BOOK){
-                System.out.println("HIIII");
-                //this.exitOperation();
+                this.input = "books";
+                this.generic_insertion();
 
             }
             else if (mapOp.get(op_symbol) == INCLUDE_USER){
-                //this.exitOperation();
-
+                this.input = "people";
+                this.generic_insertion();
             }
             else if (mapOp.get(op_symbol) == LIST_LIBRARY){
-                //this.exitOperation();
+                this.input="checkedOutBooks";
+                this.printTable();
 
             }
             else if (mapOp.get(op_symbol) == CHECKOUT){
-                //this.exitOperation();
+                this.input="checkedOutBooks";
+                this.generic_insertion();
 
             }
             else if (mapOp.get(op_symbol) == RETURN_BOOK){
-                //this.exitOperation();
+                this.input="checkedOutBooks";
+                this.removeRecords();
 
             }
             else if (mapOp.get(op_symbol) == EXIT){
-                //this.exitOperation();
-
+                System.out.println("Successfully Logged Out");
             }
         }
 
