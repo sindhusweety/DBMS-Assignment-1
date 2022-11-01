@@ -1,4 +1,4 @@
-# DBMS-Assignment-1
+# DBMS-Assignments
 
 ```Output
 
