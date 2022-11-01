@@ -75,7 +75,6 @@ public class MenuDrivenAssgmt {
             Files.createDirectory(STORAGE_DIR);
         }
         if (!Files.exists(Path.of(DB_URL))){
-            System.out.println("Exists ");
             File f = new File(DB_URL);
             Database db = new DatabaseBuilder(f).setFileFormat(Database.FileFormat.V2000).create();
             db.close();
@@ -199,7 +198,7 @@ public class MenuDrivenAssgmt {
         }
 
     }
-    
+
     public void emptyInputMsg(){
         System.out.println("------------------------------------------------------------");
         System.out.println("Entered Empty input & Please try again");
@@ -220,32 +219,10 @@ public class MenuDrivenAssgmt {
             this.readerFun();
             if (! this.input.isBlank()){
                 if (this.ltables.contains(this.input.strip())){
-                    String sql = "SELECT * FROM "+this.input.strip();
-                    this.rs = this.statement.executeQuery(sql);
-                    this.rsmd = this.rs.getMetaData();
 
-                    String table_name = this.input.strip();
-
-
-                    System.out.println("Enter "+table_name+"'s "+this.rsmd.getColumnName(1)+":");
-                    this.readerFun();
-
-                    String insert_sql = "INSERT INTO "+table_name+" VALUES ('"+this.input+"'";
-                    String check_query = "SELECT * FROM "+ table_name+" WHERE "+this.rsmd.getColumnName(1)+" ='"+this.input+"'";
-                    int count = 2;
-                    while (count <= this.rsmd.getColumnCount()){
-                        System.out.println("Enter "+table_name+"'s "+this.rsmd.getColumnName(count)+":");
-                        this.readerFun();
-                        insert_sql+=",'"+this.input.strip()+"'";
-                        check_query+=" AND "+this.rsmd.getColumnName(count)+" = '"+this.input.strip()+"'";
-
-                        count += 1;
-
-                    }
-                    insert_sql+=")";
-                    //System.out.println(insert_sql);
-                    //System.out.println(check_query);
-                    this.rs = this.statement.executeQuery(check_query);
+                    String[] strArr = this.check_insert();
+                    String table_name = strArr[0];
+                    String insert_sql = strArr[1];
 
                     if (rs.next()){
                         System.out.println("------------------------------------------------------------");
@@ -256,11 +233,7 @@ public class MenuDrivenAssgmt {
                     else{
                         this.statement.executeUpdate(insert_sql);
                         this.conn.commit();
-                        System.out.println("------------------------------------------------------------");
-                        System.out.println("Successfully inserted");
-                        System.out.println("------------------------------------------------------------");
-                        this.generic_arrlist.clear();
-                        System.out.println("------------------------------------------------------------");
+                        this.successInclusionMsg();
                         System.out.println(" Type 'Yes' or 'No' (y/n) to insert more:");
                         this.readerFun();
                         if (this.input.toLowerCase().startsWith("y")){
@@ -290,7 +263,15 @@ public class MenuDrivenAssgmt {
             this.exceptionFun();
         }
     }
-    
+    public void successInclusionMsg(){
+
+        System.out.println("------------------------------------------------------------");
+        System.out.println("Successfully included");
+        System.out.println("------------------------------------------------------------");
+        this.generic_arrlist.clear();
+        System.out.println("------------------------------------------------------------");
+    }
+
     public void tableDsnotExMsg(){
         System.out.println("------------------------------------------------------------");
         System.out.println("Table doesn't exist & Please try again");
@@ -428,9 +409,190 @@ public class MenuDrivenAssgmt {
 
 
     }
-    
+    public String[] check_insert(){
+        try{
+            String sql = "SELECT * FROM "+this.input.strip();
+            this.rs = this.statement.executeQuery(sql);
+            this.rsmd = this.rs.getMetaData();
+
+            String table_name = this.input.strip();
+
+
+            System.out.println("Enter "+table_name+"'s "+this.rsmd.getColumnName(1)+":");
+            this.readerFun();
+
+            String insert_sql = "INSERT INTO "+table_name+" VALUES ('"+this.input+"'";
+            String check_query = "SELECT * FROM "+ table_name+" WHERE "+this.rsmd.getColumnName(1)+" ='"+this.input+"'";
+            int count = 2;
+            while (count <= this.rsmd.getColumnCount()){
+                System.out.println("Enter "+table_name+"'s "+this.rsmd.getColumnName(count)+":");
+                this.readerFun();
+                insert_sql+=",'"+this.input.strip()+"'";
+                check_query+=" AND "+this.rsmd.getColumnName(count)+" = '"+this.input.strip()+"'";
+
+                count += 1;
+
+            }
+            insert_sql+=")";
+            String[] strArr ={table_name, insert_sql};
+            //System.out.println(insert_sql);
+            //System.out.println(check_query);
+            this.rs = this.statement.executeQuery(check_query);
+            return strArr;
+        }
+        catch (SQLException e){
+            this.sqlErrorMsg(e);
+            this.exceptionFun();
+        }
+
+        return new String[0];
+    }
+
+    public String[] checkCallNo(String table_name, String SSN){
+        try {
+            System.out.println("Enter book's call#:");
+            this.readerFun();
+            String callNo = this.input;
+            String callNoCheck = "SELECT * FROM books WHERE callNo='"+callNo+"'";
+            this.rs = this.statement.executeQuery(callNoCheck);
+            while (!this.rs.next()){
+                System.out.println("Entered callNo doesn't exist & please try again.");
+                System.out.println("Enter book's call#:");
+                this.readerFun();
+                callNo = this.input;
+                callNoCheck = "SELECT * FROM books WHERE callNo='"+callNo+"'";
+                this.rs = this.statement.executeQuery(callNoCheck);
+            }
+            String insert_checkout = "INSERT INTO "+table_name+" VALUES ('"+SSN+"','"+callNo+"')";
+            String chkOtBCheck = "SELECT * FROM "+table_name+ " WHERE SSN='"+SSN+"' AND callNo='"+callNo+"'";
+            this.rs = this.statement.executeQuery(chkOtBCheck);
+            String[] strArrCall = {callNo, insert_checkout};
+            return strArrCall;
+        }
+        catch (SQLException e){
+            this.sqlErrorMsg(e);
+            this.exceptionFun();
+        }
+        return new String[0];
+    }
+
     public void generic_insertion(){
-        
+        try{
+            String table_name = this.input.strip();
+            this.generic_arrlist.clear();
+            this.fetchTableNames();
+            System.out.println(this.ltables);
+            if (! this.input.isBlank()){
+                if (this.ltables.contains(this.input.strip())){
+
+                    if (table_name == "checkedOutBooks"){
+
+                        System.out.println("Enter person's SSN:");
+                        this.readerFun();
+                        String SSN = this.input;
+                        String ssnSQLCheck = "SELECT * FROM people WHERE SSN='"+ SSN+"'";
+                        this.rs = this.statement.executeQuery(ssnSQLCheck);
+                        while (!this.rs.next()){
+                            System.out.println("Entered SSN doesn't exist & please try again.");
+                            System.out.println("Enter person's SSN:");
+                            this.readerFun();
+                            SSN = this.input;
+                            ssnSQLCheck = "SELECT * FROM people WHERE SSN='"+ SSN+"'";
+                            this.rs = this.statement.executeQuery(ssnSQLCheck);
+                        }
+                        String[] strArrChk=this.checkCallNo(table_name, SSN);
+                        String callNo = strArrChk[0];
+                        String insert_checkout = strArrChk[1];
+
+                        if (this.rs.next()){
+                            System.out.println("------------------------------------------------------------");
+                            System.out.println("This Person already checked out this book (callNo: "+callNo+ "). Please try Again");
+                            System.out.println("------------------------------------------------------------");
+                            this.input = table_name;
+                            this.generic_insertion();
+                        }
+                        else{
+
+                            this.statement.executeUpdate(insert_checkout);
+                            this.conn.commit();
+                            this.successInclusionMsg();
+                            System.out.println("More books checked out (Y/n) ?");
+                            this.readerFun();
+                            String user_discretion = this.input.strip().toLowerCase();
+                            //-------------------------------------------------------------------------------------
+                            while (user_discretion.startsWith("y")) {
+
+                                strArrChk = this.checkCallNo(table_name, SSN);
+                                callNo = strArrChk[0];
+                                insert_checkout = strArrChk[1];
+                                if (this.rs.next()) {
+                                    System.out.println("------------------------------------------------------------");
+                                    System.out.println("This Person already checked out this book (callNo: "+callNo+  "). Please try Again");
+                                    System.out.println("------------------------------------------------------------");
+                                    System.out.println("More books checked out (Y/n) ?");
+                                    this.readerFun();
+                                    user_discretion = this.input.strip().toLowerCase();
+                                } else {
+
+                                    this.statement.executeUpdate(insert_checkout);
+                                    this.conn.commit();
+                                    this.successInclusionMsg();
+                                    System.out.println("More books checked out (Y/n) ?");
+                                    this.readerFun();
+                                    user_discretion = this.input.strip().toLowerCase();
+                                }
+                            }
+                            this.redirectToHome();
+                        }
+                    }
+                    else{
+                        String[] strArr = this.check_insert();
+                        table_name = strArr[0];
+                        String insert_sql = strArr[1];
+                        if (rs.next()){
+                            System.out.println("------------------------------------------------------------");
+                            System.out.println("Record already exists in the "+table_name+" table & Please try Again");
+                            System.out.println("------------------------------------------------------------");
+                            this.input = table_name;
+                            this.generic_insertion();
+                        }
+                        else{
+                            this.statement.executeUpdate(insert_sql);
+                            this.conn.commit();
+                            this.successInclusionMsg();
+                            System.out.println(" Type 'Yes' or 'No' (y/n) to include more in "+table_name +" table:");
+                            this.readerFun();
+                            if (this.input.toLowerCase().startsWith("y")){
+                                System.out.println("------------------------------------------------------------");
+                                this.input = table_name;
+                                this.generic_insertion();
+                            }
+                            else{
+                                this.redirectToHome();
+                            }
+                        }
+
+                    }
+                }
+                else{
+                    this.tableDsnotExMsg();
+                    this.input = table_name;
+                    this.generic_insertion();
+                }
+
+            }
+            else {
+                this.emptyInputMsg();
+                this.input = table_name;
+                this.generic_insertion();
+            }
+
+        }
+        catch (SQLException e){
+            this.sqlErrorMsg(e);
+            this.exceptionFun();
+        }
+
     }
     public void redirectToHome() {
 
@@ -504,7 +666,7 @@ public class MenuDrivenAssgmt {
             }
             else if (mapOp.get(op_symbol) == LIST_LIBRARY){
                 this.input="checkedOutBooks";
-                this.printTable();
+                //this.printTable();
 
             }
             else if (mapOp.get(op_symbol) == CHECKOUT){
@@ -514,7 +676,7 @@ public class MenuDrivenAssgmt {
             }
             else if (mapOp.get(op_symbol) == RETURN_BOOK){
                 this.input="checkedOutBooks";
-                this.removeRecords();
+                //this.removeRecords();
 
             }
             else if (mapOp.get(op_symbol) == EXIT){
