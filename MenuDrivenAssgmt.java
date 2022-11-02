@@ -284,8 +284,6 @@ public class MenuDrivenAssgmt {
             this.generic_arrlist.clear();
             this.fetchTableNames();
             System.out.println(this.ltables);
-            System.out.println("Enter table name: ");
-            this.readerFun();
             if (! this.input.isBlank()){
                 if (this.ltables.contains(this.input.strip())){
                     String sql = "SELECT * FROM "+this.input.strip();
@@ -427,8 +425,31 @@ public class MenuDrivenAssgmt {
             while (count <= this.rsmd.getColumnCount()){
                 System.out.println("Enter "+table_name+"'s "+this.rsmd.getColumnName(count)+":");
                 this.readerFun();
-                insert_sql+=",'"+this.input.strip()+"'";
-                check_query+=" AND "+this.rsmd.getColumnName(count)+" = '"+this.input.strip()+"'";
+                //cross check
+                 if (table_name.equals("books")  & this.rsmd.getColumnName(count).strip().equals("callNo")){
+                    String callNo = this.input.strip();
+                    String callNoCheck = "SELECT * FROM books WHERE callNo='"+callNo+"'";
+                    this.rs = this.statement.executeQuery(callNoCheck);
+                    boolean rs_status = this.rs.next();
+                    System.out.println(rs_status);
+                    while (rs_status ){
+                        System.out.println("callNo already exists");
+                        System.out.println("Enter book's call#:");
+                        this.readerFun();
+                        callNo = this.input.strip();
+                        callNoCheck = "SELECT * FROM books WHERE callNo='"+callNo+"'";
+                        this.rs = this.statement.executeQuery(callNoCheck);
+                        rs_status = this.rs.next();
+                    }
+                    insert_sql+=",'"+callNo+"'";
+                    check_query+=" AND "+this.rsmd.getColumnName(count)+" = '"+callNo+"'";
+
+                }
+                else{
+                    insert_sql+=",'"+this.input.strip()+"'";
+                    check_query+=" AND "+this.rsmd.getColumnName(count)+" = '"+this.input.strip()+"'";
+                }
+
 
                 count += 1;
 
@@ -455,14 +476,61 @@ public class MenuDrivenAssgmt {
             String callNo = this.input;
             String callNoCheck = "SELECT * FROM books WHERE callNo='"+callNo+"'";
             this.rs = this.statement.executeQuery(callNoCheck);
-            while (!this.rs.next()){
+            String callNo_user_discretion = "y";
+            boolean rs_status = !this.rs.next();
+            boolean callNo_user_discretion_status = callNo_user_discretion.strip().toLowerCase().startsWith("y");
+            while (rs_status & callNo_user_discretion_status){
+
                 System.out.println("Entered callNo doesn't exist & please try again.");
-                System.out.println("Enter book's call#:");
+                System.out.println("do you want to continue trying (Y/n)?:");
                 this.readerFun();
-                callNo = this.input;
-                callNoCheck = "SELECT * FROM books WHERE callNo='"+callNo+"'";
-                this.rs = this.statement.executeQuery(callNoCheck);
+                callNo_user_discretion = this.input.toLowerCase();
+                callNo_user_discretion_status = callNo_user_discretion.strip().toLowerCase().startsWith("y");
+                if (this.input.toLowerCase().startsWith("y")){
+                    System.out.println("Enter book's call#:");
+                    this.readerFun();
+                    callNo = this.input.strip();
+                    callNoCheck = "SELECT * FROM books WHERE callNo='"+callNo+"'";
+                    this.rs = this.statement.executeQuery(callNoCheck);
+                    rs_status = !this.rs.next();
+
+                }
+                else{
+                    this.redirectToHome();
+                    callNo_user_discretion_status = false;
+
+                }
             }
+
+            callNoCheck = "SELECT * FROM checkedOutBooks WHERE callNo='"+callNo+"'";
+            this.rs = this.statement.executeQuery(callNoCheck);
+            callNo_user_discretion = "y";
+            rs_status = this.rs.next();
+            callNo_user_discretion_status = callNo_user_discretion.strip().toLowerCase().startsWith("y");
+            while (rs_status & callNo_user_discretion_status){
+
+                System.out.println("You have already checked out this book.");
+                System.out.println("do you want to continue trying (Y/n)?:");
+                this.readerFun();
+                callNo_user_discretion = this.input.toLowerCase();
+                callNo_user_discretion_status = callNo_user_discretion.strip().toLowerCase().startsWith("y");
+                if (this.input.toLowerCase().startsWith("y")){
+                    System.out.println("Enter book's call#:");
+                    this.readerFun();
+                    callNo = this.input.strip();
+                    callNoCheck = "SELECT * FROM books WHERE callNo='"+callNo+"'";
+                    this.rs = this.statement.executeQuery(callNoCheck);
+                    rs_status = this.rs.next();
+
+                }
+                else{
+                    this.redirectToHome();
+                    callNo_user_discretion_status = false;
+
+                }
+
+            }
+
             String insert_checkout = "INSERT INTO "+table_name+" VALUES ('"+SSN+"','"+callNo+"')";
             String chkOtBCheck = "SELECT * FROM "+table_name+ " WHERE SSN='"+SSN+"' AND callNo='"+callNo+"'";
             this.rs = this.statement.executeQuery(chkOtBCheck);
@@ -484,21 +552,40 @@ public class MenuDrivenAssgmt {
             System.out.println(this.ltables);
             if (! this.input.isBlank()){
                 if (this.ltables.contains(this.input.strip())){
-
-                    if (table_name == "checkedOutBooks"){
+                    if (table_name.equals("checkedOutBooks")){
 
                         System.out.println("Enter person's SSN:");
                         this.readerFun();
-                        String SSN = this.input;
+                        String SSN = this.input.strip();
                         String ssnSQLCheck = "SELECT * FROM people WHERE SSN='"+ SSN+"'";
                         this.rs = this.statement.executeQuery(ssnSQLCheck);
-                        while (!this.rs.next()){
+                        String ssn_user_discretion = "y";
+
+                        boolean rs_status = !this.rs.next();
+                        boolean ssn_user_discretion_status = ssn_user_discretion.strip().toLowerCase().startsWith("y");
+
+                        while (rs_status & ssn_user_discretion_status){
+
                             System.out.println("Entered SSN doesn't exist & please try again.");
-                            System.out.println("Enter person's SSN:");
+                            System.out.println("do you want to continue trying (Y/n)?:");
                             this.readerFun();
-                            SSN = this.input;
-                            ssnSQLCheck = "SELECT * FROM people WHERE SSN='"+ SSN+"'";
-                            this.rs = this.statement.executeQuery(ssnSQLCheck);
+                            ssn_user_discretion = this.input.toLowerCase();
+                            ssn_user_discretion_status = ssn_user_discretion.strip().toLowerCase().startsWith("y");
+                            if (this.input.toLowerCase().startsWith("y")){
+                                System.out.println("Enter person's SSN:");
+                                this.readerFun();
+                                SSN = this.input.strip();
+                                ssnSQLCheck = "SELECT * FROM people WHERE SSN='"+ SSN+"'";
+                                this.rs = this.statement.executeQuery(ssnSQLCheck);
+                                rs_status = !this.rs.next();
+                            }
+                            else{
+
+                                this.redirectToHome();
+                                ssn_user_discretion_status = false;
+
+                            }
+
                         }
                         String[] strArrChk=this.checkCallNo(table_name, SSN);
                         String callNo = strArrChk[0];
@@ -603,6 +690,19 @@ public class MenuDrivenAssgmt {
         this.menuPage();
     }
 
+    public void listLibraryUser(String view_sql){
+        try{
+            this.statement.executeQuery(view_sql);
+            this.conn.commit();
+            //this.rs = this.statement.executeQuery("SELECT * FROM library_users");
+            //System.out.println(this.rs.next());
+        }
+        catch (SQLException e){
+            this.sqlErrorMsg(e);
+            this.exceptionFun();
+        }
+    }
+
     public void closeDBConnection()
     {
         try{
@@ -650,6 +750,8 @@ public class MenuDrivenAssgmt {
                 this.insertTable();
             }
             else if (mapOp.get(op_symbol) == REMOVE){
+                System.out.println("Enter table name: ");
+                this.readerFun();
                 this.removeRecords();
             }
             else if (mapOp.get(op_symbol) == PRINTTABLE){
@@ -665,8 +767,13 @@ public class MenuDrivenAssgmt {
                 this.generic_insertion();
             }
             else if (mapOp.get(op_symbol) == LIST_LIBRARY){
-                this.input="checkedOutBooks";
-                //this.printTable();
+                String view_sql = "SELECT people.name, books.author, books.title FROM people JOIN checkedOutBooks " +
+                                //" WHERE people.SNN = checkedOutBooks.SNN AND books.callNo = checkedOutBooks.callNo";
+                        " ON PEOPLE.SNN = checkedOutBooks.SNN";
+                //"CREATE VIEW \"SCHEMA\".LIBRARY_USERS AS " +
+                this.listLibraryUser(view_sql);
+
+
 
             }
             else if (mapOp.get(op_symbol) == CHECKOUT){
@@ -676,11 +783,12 @@ public class MenuDrivenAssgmt {
             }
             else if (mapOp.get(op_symbol) == RETURN_BOOK){
                 this.input="checkedOutBooks";
-                //this.removeRecords();
+                this.removeRecords();
 
             }
             else if (mapOp.get(op_symbol) == EXIT){
                 System.out.println("Successfully Logged Out");
+                System.exit(1);
             }
         }
 
